@@ -107,4 +107,18 @@ client.on('message', message => {
     }
 });
 
+//Fun Replies
+client.on('message', msg => {
+    if (msg.author.bot) return;
+    var funReply = msg.content.toLowerCase();
+    if (funReply.includes('lyoshka')) { msg.channel.send('This song is about a tragic love.') }
+    else if (funReply.includes('hime hime')) { msg.channel.send('Suki Suki Daisuki') }
+    else if (funReply.includes('dame da ne')) { msg.channel.send('dame yo dame na no yo') }
+    else if (funReply.includes('united')) { msg.channel.send('haha stan can\'t pass united') }
+    else if (funReply.includes('owo')) { msg.channel.send('what\'s this?') }
+    else if (funReply.includes('\\o/')) { msg.channel.send('\\o/') }
+    else if (funReply.includes('o/')) { msg.channel.send('\\o') }
+    else if (funReply.includes('\\o')) { msg.channel.send('o/') }
+});
+
 client.login(token);
