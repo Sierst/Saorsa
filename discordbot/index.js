@@ -1,124 +1,86 @@
-const fs = require('fs');
-const Discord = require('discord.js');
-const { prefix, token } = require('./config.json');
+// This will check if the node version you are running is the required
+// Node version, if it isn't it will throw the following error to inform
+// you.
+if (Number(process.version.slice(1).split(".")[0]) < 12) throw new Error("Node 12.0.0 or higher is required. Update Node on your system.");
 
-const client = new Discord.Client();
-client.commands = new Discord.Collection();
-const cooldowns = new Discord.Collection();
+// Load up the discord.js library
+const Discord = require("discord.js");
+// We also load the rest of the things we need in this file:
+const { promisify } = require("util");
+const readdir = promisify(require("fs").readdir);
+const Enmap = require("enmap");
+const config = require("./config.js");
 
-client.queue = new Map();
-const escapeRegex = (str) => str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-
-const commandFiles = fs.readdirSync('./commands').filter(file => file.endsWith('.js'));
-
-for (const file of commandFiles) {
-    const command = require(`./commands/${file}`);
-    client.commands.set(command.name, command);
-}
-
-client.on('ready', () => {
-    console.log(`Logged in as ${client.user.tag}!`);
-    client.user.setActivity(`!help`, { type: 'LISTENING' })
-    let myGuild = client.guilds.cache.get('794658347412226099');
-    let memberCount = myGuild.memberCount;
-    let memberCountChannel = myGuild.channels.cache.get('794664438983557140');
-    memberCountChannel.setName('Member Count: ' + memberCount)
-        .then(result => console.log('Updated Member Count VC. New count: ' + memberCount))
-        .catch(error => console.log('Couldn\'t update Member Count VC'))
-});
-
-client.on('guildMemberAdd', member => {
-    const channel = member.guild.channels.cache.find(ch => ch.name === 'new-members');
-    if (!channel) return;
-    channel.send(`${member} joined the server.`);
-
-    let myGuild = client.guilds.cache.get('794658347412226099');
-    let memberCount = myGuild.memberCount;
-    let memberCountChannel = myGuild.channels.cache.get('794664438983557140');
-    memberCountChannel.setName('Member Count: ' + memberCount)
-        .then(result => console.log('Updated Member Count VC. New count: ' + memberCount))
-        .catch(error => console.log('Couldn\'t update Member Count VC'))
-});
-
-client.on('guildMemberRemove', member => {
-    const channel = member.guild.channels.cache.find(ch => ch.name === 'new-members');
-    if (!channel) return;
-    channel.send('**' + member.user.username + '** left the server.');
-
-    let myGuild = client.guilds.cache.get('794658347412226099');
-    let memberCount = myGuild.memberCount;
-    let memberCountChannel = myGuild.channels.cache.get('794664438983557140');
-    memberCountChannel.setName('Member Count: ' + memberCount)
-        .then(result => console.log('Updated Member Count VC. New count: ' + memberCount))
-        .catch(error => console.log('Couldn\'t update Member Count VC'))
-});
-
-//commands
-client.on('message', message => {
-    if (!message.content.startsWith(prefix) || message.author.bot) return;
-
-    const args = message.content.slice(prefix.length).trim().split(' ');
-    const commandName = args.shift().toLowerCase();
-
-    const command = client.commands.get(commandName)
-        || client.commands.find(cmd => cmd.aliases && cmd.aliases.includes(commandName));
-
-    if (!command) return;
-
-    if (command.guildOnly && message.channel.type === 'dm') {
-        return message.reply('I can\'t execute that command inside DMs!');
-    }
-
-    if (command.args && !args.length) {
-        let reply = `You didn't provide any arguments, ${message.author}!`;
-
-        if (command.usage) {
-            reply += `\nThe proper usage would be: \`${prefix}${command.name} ${command.usage}\``;
-        }
-
-        return message.channel.send(reply);
-    }
-
-    if (!cooldowns.has(command.name)) {
-        cooldowns.set(command.name, new Discord.Collection());
-    }
-
-    const now = Date.now();
-    const timestamps = cooldowns.get(command.name);
-    const cooldownAmount = (command.cooldown || 3) * 1000;
-
-    if (timestamps.has(message.author.id)) {
-        const expirationTime = timestamps.get(message.author.id) + cooldownAmount;
-
-        if (now < expirationTime) {
-            const timeLeft = (expirationTime - now) / 1000;
-            return message.reply(`please wait ${timeLeft.toFixed(1)} more second(s) before reusing the \`${command.name}\` command.`);
-        }
-    }
-
-    timestamps.set(message.author.id, now);
-    setTimeout(() => timestamps.delete(message.author.id), cooldownAmount);
-
-    try {
-        command.execute(message, args);
-    } catch (error) {
-        console.error(error);
-        message.channel.send('There was an error trying to execute that command!');
+// This is your client. Some people call it `bot`, some people call it `self`,
+// some might call it `cootchie`. Either way, when you see `client.something`,
+// or `bot.something`, this is what we're referring to. Your client.
+const client = new Discord.Client({
+    ws: {
+        intents: config.intents
     }
 });
 
-//Fun Replies
-client.on('message', msg => {
-    if (msg.author.bot) return;
-    var funReply = msg.content.toLowerCase();
-    if (funReply.includes('lyoshka')) { msg.channel.send('This song is about a tragic love.') }
-    else if (funReply.includes('hime hime')) { msg.channel.send('Suki Suki Daisuki') }
-    else if (funReply.includes('dame da ne')) { msg.channel.send('dame yo dame na no yo') }
-    else if (funReply.includes('united')) { msg.channel.send('haha stan can\'t pass united') }
-    else if (funReply.includes('owo')) { msg.channel.send('what\'s this?') }
-    else if (funReply.includes('\\o/')) { msg.channel.send('\\o/') }
-    else if (funReply.includes('o/')) { msg.channel.send('\\o') }
-    else if (funReply.includes('\\o')) { msg.channel.send('o/') }
-});
+// Here we load the config file that contains our token and our prefix values.
+client.config = config
+// client.config.token contains the bot's token
+// client.config.prefix contains the message prefix
 
-client.login(token);
+// Require our logger
+client.logger = require("./modules/Logger");
+
+// Let's start by getting some useful functions that we'll use throughout
+// the bot, like logs and elevation features.
+require("./modules/functions.js")(client);
+
+// Aliases and commands are put in collections where they can be read from,
+// catalogued, listed, etc.
+client.commands = new Enmap();
+client.aliases = new Enmap();
+
+// Now we integrate the use of Evie's awesome EnMap module, which
+// essentially saves a collection to disk. This is great for per-server configs,
+// and makes things extremely easy for this purpose.
+client.settings = new Enmap({ name: "settings" });
+
+// We're doing real fancy node 8 async/await stuff here, and to do that
+// we need to wrap stuff in an anonymous function. It's annoying but it works.
+
+const init = async () => {
+
+    // Here we load **commands** into memory, as a collection, so they're accessible
+    // here and everywhere else.
+    const cmdFiles = await readdir("./commands/");
+    client.logger.log(`Loading a total of ${cmdFiles.length} commands.`);
+    cmdFiles.forEach(f => {
+        if (!f.endsWith(".js")) return;
+        const response = client.loadCommand(f);
+        if (response) console.log(response);
+    });
+
+    // Then we load events, which will include our message and ready event.
+    const evtFiles = await readdir("./events/");
+    client.logger.log(`Loading a total of ${evtFiles.length} events.`);
+    evtFiles.forEach(file => {
+        const eventName = file.split(".")[0];
+        client.logger.log(`Loading Event: ${eventName}`);
+        const event = require(`./events/${file}`);
+        // Bind the client to any event, before the existing arguments
+        // provided by the discord.js event. 
+        // This line is awesome by the way. Just sayin'.
+        client.on(eventName, event.bind(null, client));
+    });
+
+    // Generate a cache of client permissions for pretty perm names in commands.
+    client.levelCache = {};
+    for (let i = 0; i < client.config.permLevels.length; i++) {
+        const thisLevel = client.config.permLevels[i];
+        client.levelCache[thisLevel.name] = thisLevel.level;
+    }
+
+    // Here we login the client.
+    client.login(client.config.token);
+
+    // End top-level async/await function.
+};
+
+init();

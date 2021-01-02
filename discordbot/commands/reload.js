@@ -1,25 +1,25 @@
-module.exports = {
-	name: 'reload',
-	description: 'Reloads a command',
-	args: true,
-	execute(message, args) {
-		const commandName = args[0].toLowerCase();
-		const command = message.client.commands.get(commandName)
-			|| message.client.commands.find(cmd => cmd.aliases && cmd.aliases.includes(commandName));
+exports.run = async (client, message, args, level) => { // eslint-disable-line no-unused-vars
+	if (!args || args.length < 1) return message.reply("Must provide a command to reload. Derp.");
+	const command = client.commands.get(args[0]) || client.commands.get(client.aliases.get(args[0]));
+	let response = await client.unloadCommand(args[0]);
+	if (response) return message.reply(`Error Unloading: ${response}`);
 
-		if (!command) {
-			return message.channel.send(`There is no command with name or alias \`${commandName}\`, ${message.author}!`);
-		}
+	response = client.loadCommand(command.help.name);
+	if (response) return message.reply(`Error Loading: ${response}`);
 
-		delete require.cache[require.resolve(`./${command.name}.js`)];
+	message.reply(`The command \`${command.help.name}\` has been reloaded`);
+};
 
-		try {
-			const newCommand = require(`./${command.name}.js`);
-			message.client.commands.set(newCommand.name, newCommand);
-			message.channel.send(`Command \`${command.name}\` was reloaded!`);
-		} catch (error) {
-			console.log(error);
-			message.channel.send(`There was an error while reloading a command \`${command.name}\`:\n\`${error.message}\``);
-		}
-	},
+exports.conf = {
+	enabled: true,
+	guildOnly: false,
+	aliases: [],
+	permLevel: "Bot Admin"
+};
+
+exports.help = {
+	name: "reload",
+	category: "System",
+	description: "Reloads a command that\"s been modified.",
+	usage: "reload [command]"
 };
