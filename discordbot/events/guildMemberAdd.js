@@ -1,12 +1,16 @@
-module.exports = (client, member) => {
-    const channel = member.guild.channels.cache.find(ch => ch.name === 'new-members');
-    if (!channel) return;
-    channel.send(`${member} joined the server.`);
+// This event executes when a new member joins a server. Let's welcome them!
 
-    let myGuild = client.guilds.cache.get('794658347412226099');
-    let memberCount = myGuild.memberCount;
-    let memberCountChannel = myGuild.channels.cache.get('794664438983557140');
-    memberCountChannel.setName('Member Count: ' + memberCount)
-        .then(result => console.log('Updated Member Count VC. New count: ' + memberCount))
-        .catch(error => console.log('Couldn\'t update Member Count VC'))
-}
+module.exports = (client, member) => {
+    // Load the guild's settings
+    const settings = client.getSettings(member.guild);
+
+    // If welcome is off, don't proceed (don't welcome the user)
+    if (settings.welcomeEnabled !== "true") return;
+
+    // Replace the placeholders in the welcome message with actual data
+    const welcomeMessage = settings.welcomeMessage.replace("{{user}}", member.user.tag);
+
+    // Send the welcome message to the welcome channel
+    // There's a place for more configs here.
+    member.guild.channels.cache.find(c => c.name === settings.welcomeChannel).send(welcomeMessage).catch(console.error);
+};
