@@ -1,12 +1,21 @@
-module.exports = (client, member) => {
-    const channel = member.guild.channels.cache.find(ch => ch.name === 'new-members');
-    if (!channel) return;
-    channel.send('**' + member.user.username + '** left the server.');
+// This event executes when a new member leaves the server. 
 
-    let myGuild = client.guilds.cache.get('794658347412226099');
-    let memberCount = myGuild.memberCount;
-    let memberCountChannel = myGuild.channels.cache.get('794664438983557140');
-    memberCountChannel.setName('Member Count: ' + memberCount)
-        .then(result => console.log('Updated Member Count VC. New count: ' + memberCount))
-        .catch(error => console.log('Couldn\'t update Member Count VC'))
-}
+module.exports = async (client, member) => {
+    //Counts members when member gets added.
+    client.guilds.cache.get('794658347412226099').channels.cache.get('794664438983557140').setName('Member Count: ' + client.guilds.cache.get('794658347412226099').memberCount);
+    client.logger.log(`User left! New member count: ${client.guilds.cache.get('794658347412226099').memberCount}`);
+
+    // Load the guild's settings
+    const settings = client.getSettings(member.guild);
+
+    // If goodbye is off, don't proceed (don't goodbye the user)
+    if (settings.goodbyeEnabled !== "true") return;
+
+    // Replace the placeholders in the goodbye message with actual data
+    const goodbyeMessage = settings.goodbyeMessage.replace("{{user}}", member.user.tag);
+
+    // Send the goodbye message to the goodbye channel
+    // There's a place for more configs here.
+    member.guild.channels.cache.find(c => c.name === settings.goodbyeChannel).send(goodbyeMessage).catch(console.error);
+
+};

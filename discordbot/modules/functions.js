@@ -37,11 +37,14 @@ module.exports = (client) => {
         "prefix": "!",
         "modLogChannel": "mod-log",
         "modRole": "Moderator",
-        "adminRole": "Administrator",
+        "adminRole": "Admin",
         "systemNotice": "true",
-        "welcomeChannel": "welcome",
-        "welcomeMessage": "Say hello to {{user}}, everyone! We all need a warm welcome sometimes :D",
-        "welcomeEnabled": "false"
+        "welcomeChannel": "new-members",
+        "welcomeMessage": "{{user}} has joined the server!",
+        "welcomeEnabled": "true",
+        "goodbyeChannel": "new-members",
+        "goodbyeMessage": "{{user}} has left the server.",
+        "goodbyeEnabled": "true",
     };
 
     // getSettings merges the client defaults with the guild settings. guild settings in

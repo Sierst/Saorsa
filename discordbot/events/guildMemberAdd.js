@@ -1,6 +1,8 @@
-// This event executes when a new member joins a server. Let's welcome them!
-
-module.exports = (client, member) => {
+module.exports = async (client, member) => {
+    //Counts members when member gets added.
+    client.guilds.cache.get('794658347412226099').channels.cache.get('794664438983557140').setName('Member Count: ' + client.guilds.cache.get('794658347412226099').memberCount);
+    client.logger.log(`User joined! New member count: ${client.guilds.cache.get('794658347412226099').memberCount}`);
+    console.log(`User joined!`);
     // Load the guild's settings
     const settings = client.getSettings(member.guild);
 
